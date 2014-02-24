@@ -28,6 +28,6 @@ Virtual Keyboard for Adafruit PiTFT
    from virtualKeyboard import VirtualKeyboard
 
    default_text = 'Hello world'
-   mykeybd = vKeyboard.VirtualKeyboard()
+   mykeybd = VirtualKeyboard()
    userinput = mykeybd.run(screen, default_text)
 

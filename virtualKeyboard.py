@@ -24,7 +24,7 @@
    
    from virtualKeyboard import VirtualKeyboard
    
-   mykeys = vKeyboard.VirtualKeyboard()
+   mykeys = VirtualKeyboard()
    userinput = mykeys.run(screen, default_text)
    
    screen is a full screen pygame screen.  The VirtualKeyboard will shade out the current screen and overlay
