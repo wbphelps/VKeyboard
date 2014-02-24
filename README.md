@@ -3,7 +3,7 @@ VKeyboard
 
 Virtual Keyboard for Adafruit PiTFT
 
- (C) Copyright 2007 Anthony Maro
+ (C) Copyright 2007 Anthony Maro<br>
  (C) Copyright 2014 William B Phelps
 
    Version 2.0 - February 2014 - for PiTFT 320x240 touchscreen
