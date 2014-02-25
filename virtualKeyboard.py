@@ -59,10 +59,10 @@ class TextInput(object):
         self.text = text
 #        self.width = 800
 #        self.height = 60        
-        self.width = 320
+        self.width = 290
         self.height = 30        
-#        self.font = pygame.font.Font(None, 50)
-        self.font = pygame.font.Font(None, 30)
+#        self.font = pygame.font.Font(None, 30) # use this if you want more text in the line
+        self.font = pygame.font.SysFont('Courier', 22, bold=True)        
         self.cursorpos = len(text)
         self.rect = Rect(self.x,self.y,self.width,self.height)
 #        self.layer = pygame.Surface((self.width,self.height),SRCALPHA).convert_alpha()
@@ -175,10 +175,12 @@ class VKey(object):
         self.caption = caption
         self.width = w
         self.height = h
+        self.special = False
         self.enter = False
         self.bskey = False
         self.fskey = False
         self.spacekey = False
+        self.escape = False
         self.shiftkey = False
         self.font = None
         self.selected = False
@@ -198,7 +200,8 @@ class VKey(object):
         if shifted:
             if self.shiftkey:
                 self.selected = True # highlight the Shift button
-            myletter = myletter.translate(Uppercase)
+            if not self.special:
+                myletter = myletter.translate(Uppercase)
         
         
         position = Rect(self.x, self.y, self.width, self.height)
@@ -271,9 +274,9 @@ class VirtualKeyboard(object):
         self.caps = False
         
         pygame.font.init() # Just in case 
-        self.font = pygame.font.Font(None, 28) # 40
-        
-        self.input = TextInput(self.background,self.screen,self.text,0,30)
+        self.font = pygame.font.Font(None, 28) 
+#        self.font = pygame.font.SysFont('Courier', 22, bold=True)        
+        self.input = TextInput(self.background,self.screen,self.text,3,30)
        
         self.addkeys()
         self.paintkeys()
@@ -303,7 +306,7 @@ class VirtualKeyboard(object):
                         self.selectatmouse()   
                     if (e.type == MOUSEBUTTONUP):
                         if self.clickatmouse():
-                            # user clicked enter if returns True
+                            # user clicked enter or escape if returns True
                             self.clear()
                             return self.input.text # Return what the user entered
                     if (e.type == MOUSEMOTION):
@@ -349,6 +352,9 @@ class VirtualKeyboard(object):
                     self.togglecaps()
                     self.paintkeys() 
                     return False
+                if key.escape:
+                    self.input.text = '' # clear input
+                    return True
                 if key.enter:
                     return True
                     
@@ -435,29 +441,40 @@ class VirtualKeyboard(object):
             self.keys.append(onekey)
             x += keyWidth # 70
 
-        x = 20
+        x = 3
         y += keyHeight + 5
 
-        onekey = VKey('Shift',x,y,70)
+        xfont = pygame.font.SysFont('Courier', 22, bold=True) # I like this X better
+        onekey = VKey('X',294,30,25) # exit key
+        onekey.font = xfont
+        onekey.special = True
+        onekey.escape = True
+        self.keys.append(onekey)
+
+        onekey = VKey('Shift',23,y,65)
         onekey.font = self.font
+        onekey.special = True
         onekey.shiftkey = True
         self.keys.append(onekey)
 
-        onekey = VKey('Space',97,y,80)
+        onekey = VKey('Space',94,y,86)
         onekey.font = self.font
+        onekey.special = True
         onekey.spacekey = True
         self.keys.append(onekey)
 
-        onekey = VKey('Enter',184,y,70)
+        onekey = VKey('Enter',186,y,65)
         onekey.font = self.font
+        onekey.special = True
         onekey.enter = True
         self.keys.append(onekey)
             
-        onekey = VKey('<-',261,y,38)
+        onekey = VKey('<-',257,y,40)
         onekey.font = self.font
+        onekey.special = True
         onekey.bskey = True
         self.keys.append(onekey)
-            
+
         
     def paintkeys(self):
         ''' Draw the keyboard (but only if they're dirty.) '''
