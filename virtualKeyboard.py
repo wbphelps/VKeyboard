@@ -3,7 +3,9 @@
     (C) Copyright 2007 Anthony Maro
     (C) Copyright 2014 William B Phelps
 
-   Version 2.0 - February 2014 - for PiTFT 320x240 touchscreen
+   Version 2.1 - March 2014 - for PiTFT 320x240 touchscreen
+
+   Now has 2 line input area (code specific for 2 lines, not generalized)
        
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -24,8 +26,8 @@
    
    from virtualKeyboard import VirtualKeyboard
    
-   mykeys = VirtualKeyboard()
-   userinput = mykeys.run(screen, default_text)
+   vkeybd = VirtualKeyboard(screen)
+   userinput = vkeybd.run(default_text)
    
    screen is a full screen pygame screen.  The VirtualKeyboard will shade out the current screen and overlay
    a transparent keyboard.  default_text gets fed to the initial text import - used for editing text fields
@@ -33,12 +35,12 @@
    
 """
 
-import os
-# Init framebuffer/touchscreen environment variables
-os.putenv('SDL_VIDEODRIVER', 'fbcon')
-os.putenv('SDL_FBDEV'      , '/dev/fb1')
-os.putenv('SDL_MOUSEDRV'   , 'TSLIB')
-os.putenv('SDL_MOUSEDEV'   , '/dev/input/touchscreen')
+#import os
+## Init framebuffer/touchscreen environment variables
+#os.putenv('SDL_VIDEODRIVER', 'fbcon')
+#os.putenv('SDL_FBDEV'      , '/dev/fb1')
+#os.putenv('SDL_MOUSEDRV'   , 'TSLIB')
+#os.putenv('SDL_MOUSEDEV'   , '/dev/input/touchscreen')
 
 #import pygame, time, gtk
 import pygame, time
@@ -51,47 +53,60 @@ Uppercase = maketrans("abcdefghijklmnopqrstuvwxyz`1234567890-=[]\;\',./",
 keyWidth = 27 # key width including borders
 keyHeight = 29 # key height 
 
-class TextInput(object):
+class TextInput():
     ''' Handles the text input box and manages the cursor '''
-    def __init__(self, background, screen, text, x, y):
+    def __init__(self, background, screen, text, x, y, w, h):
+        self.screen = screen
+        self.text = text
+        self.cursorpos = len(text)
         self.x = x
         self.y = y
-        self.text = text
-#        self.width = 800
-#        self.height = 60        
-        self.width = 290
-        self.height = 30        
-#        self.font = pygame.font.Font(None, 30) # use this if you want more text in the line
-        self.font = pygame.font.SysFont('Courier', 22, bold=True)        
-        self.cursorpos = len(text)
-        self.rect = Rect(self.x,self.y,self.width,self.height)
-#        self.layer = pygame.Surface((self.width,self.height),SRCALPHA).convert_alpha()
-#        self.background = pygame.Surface((self.width,self.height),SRCALPHA).convert_alpha()
+        self.width = w
+        self.height = h
+        self.rect = Rect(x,y,w,h)
         self.layer = pygame.Surface((self.width,self.height))
         self.background = pygame.Surface((self.width,self.height))
         self.background.blit(background,(0,0),self.rect) # Store our portion of the background
-#        self.cursorlayer = pygame.Surface((3,50))
-#        self.cursorlayer = pygame.Surface((3,30)) # black vertical line
+
         self.cursorlayer = pygame.Surface((2,22)) # thin vertical line
-        self.cursorlayer.fill((255,255,255,127)) # white vertical line
-        self.screen = screen
+        self.cursorlayer.fill((255,255,255)) # white vertical line, semi-transparent ?
         self.cursorvis = True
+
+#        self.font = pygame.font.Font(None, 30) # use this if you want more text in the line
+        self.font = pygame.font.SysFont('Courier New', 22, bold=True) # 21 or 20?
+#        self.lineW = 21 # chars per line
+        # attempt to figure out how many chars will fit on a line
+        # this does not work with proportional fonts
+        tX = self.font.render("XXXXXXXXXX", 1, (255,255,0)) # 10 chars
+        rtX = tX.get_rect() # how big is it?
+        self.lineW = int(self.width/(rtX.width/10))-1 # chars per line (horizontal)
+        self.lineH = rtX.height # pixels per line (vertical)
+        print 'txtinp: width={} rtX={} lineW={} lineH={}'.format(self.width,rtX,self.lineW,self.lineH)
+
+        self.cursorX = len(text)%self.lineW
+        self.cursorY = int(len(text)/self.lineW) # line 1
         
         self.draw()
     
     def draw(self):
         ''' Draw the text input box '''
 #        self.layer.fill([255, 255, 255, 127]) # 140
-        self.layer.fill((0,0,0)) 
-        color = [255,255,255]
-        pygame.draw.rect(self.layer, color, (0,0,self.width,self.height), 1)        
+        self.layer.fill((0,0,0)) # clear the layer
+        pygame.draw.rect(self.layer, (255,255,255), (0,0,self.width,self.height), 1) # draw the box
         
-        text = self.font.render(self.text, 1, (255,255,0))
-        self.layer.blit(text,(4,4))               
+# should be more general, but for now, just hack it for 2 lines
+        txt1 = self.text[:self.lineW] # line 1
+        txt2 = self.text[self.lineW:] # line 2
+        t1 = self.font.render(txt1, 1, (255,255,0)) # line 1
+        self.layer.blit(t1,(4,4))
+        t2 = self.font.render(txt2, 1, (255,255,0)) # line 1
+        self.layer.blit(t2,(4,4+self.lineH))
         
-        self.screen.blit(self.background,(self.x, self.y))
-        self.screen.blit(self.layer,(self.x,self.y))        
+        self.screen.blit(self.background, self.rect)
+        self.screen.blit(self.layer, self.rect)        
         self.drawcursor()
+
+        pygame.display.update()
     
     def flashcursor(self):
         ''' Toggle visibility of the cursor '''
@@ -100,12 +115,12 @@ class TextInput(object):
         else:
             self.cursorvis = True
         
-        self.screen.blit(self.background,(self.x, self.y))
-        self.screen.blit(self.layer,(self.x,self.y))  
+        self.screen.blit(self.background,self.rect)
+        self.screen.blit(self.layer,self.rect)  
         
         if self.cursorvis:
             self.drawcursor()
-        pygame.display.flip()
+        pygame.display.update()
         
     def addcharatcursor(self, letter):
         ''' Add a character whereever the cursor is currently located '''
@@ -117,7 +132,7 @@ class TextInput(object):
             return
         self.text += letter
         self.cursorpos += 1
-        self.draw()   
+        self.draw()
         
     def backspace(self):
         ''' Delete a character before the cursor position '''
@@ -141,27 +156,32 @@ class TextInput(object):
         
     def drawcursor(self):
         ''' Draw the cursor '''
+        line = int(self.cursorpos/self.lineW) # line number
+        if line>1: line = 1
         x = 4
-        y = 5 + self.y
+        y = 4 + self.y + line*self.lineH 
         # Calc width of text to this point
         if self.cursorpos > 0:
-            mytext = self.text[:self.cursorpos]
-            text = self.font.render(mytext, 1, (255,255,255))
-            textpos = text.get_rect()
+            linetext = self.text[line*self.lineW:self.cursorpos]
+            rtext = self.font.render(linetext, 1, (255,255,255))
+            textpos = rtext.get_rect()
             x = x + textpos.width + 1
         self.screen.blit(self.cursorlayer,(x,y))
 
-    def setcursor(self,x): # move cursor to char nearest x position
+    def setcursor(self,pos): # move cursor to char nearest position (x,y)
+        line = int((pos[1]-self.y)/self.lineH) # vertical
+        if line>1: line = 1 # only 2 lines
+        x = pos[0]-self.x + line*self.width # virtual x position
         p = 0
-#        print 'setcursor {}'.format(x)
+        l = len(self.text)
+#        print 'setcursor {} x={},y={}'.format(pos,x,y)
 #        print 'text {}'.format(self.text)
-        while p < len(self.text):
-            t = self.text[:p+1] # lets look at next char
-            text = self.font.render(t, 1, (255,255,255)) # any color will do
-            textpos = text.get_rect()
-            textX = textpos.x + textpos.width
+        while p < l:
+            text = self.font.render(self.text[:p+1], 1, (255,255,255)) # how many pixels to next char?
+            rtext = text.get_rect()
+            textX = rtext.x + rtext.width
 #            print 't = {}, tx = {}'.format(t,textX)
-            if textX >= x: break
+            if textX >= x: break # we found it
             p += 1
         self.cursorpos = p
         self.draw()        
@@ -188,7 +208,7 @@ class VKey(object):
         self.keylayer = pygame.Surface((self.width,self.height)).convert()
         self.keylayer.fill((128, 128, 128)) # 0,0,0
 ##        self.keylayer.set_alpha(160)
-        # Pre draw the border and store in my layer
+        # Pre draw the border and store in the key layer
         pygame.draw.rect(self.keylayer, (255,255,255), (0,0,self.width,self.height), 1)
         
     def draw(self, screen, background, shifted=False, forcedraw=False):
@@ -196,26 +216,25 @@ class VKey(object):
         if not forcedraw:
             if not self.dirty: return
         
-        myletter = self.caption
+        keyletter = self.caption
         if shifted:
             if self.shiftkey:
                 self.selected = True # highlight the Shift button
             if not self.special:
-                myletter = myletter.translate(Uppercase)
-        
+                keyletter = self.caption.translate(Uppercase)
         
         position = Rect(self.x, self.y, self.width, self.height)
         
         # put the background back on the screen so we can shade properly
         screen.blit(background, (self.x,self.y), position)      
         
-        # Put the shaded key background into my layer
+        # Put the shaded key background into key layer
         if self.selected: 
             color = (200,200,200)
         else:
             color = (0,0,0)
         
-        # Copy my layer onto the screen using Alpha so you can see through it
+        # Copy key layer onto the screen using Alpha so you can see through it
         pygame.draw.rect(self.keylayer, color, (1,1,self.width-2,self.height-2))                
         screen.blit(self.keylayer,(self.x,self.y))    
                 
@@ -238,7 +257,7 @@ class VKey(object):
 #            
 #        else:
         if True:
-            text = self.font.render(myletter, 1, (255, 255, 255))
+            text = self.font.render(keyletter, 1, (255, 255, 255))
             textpos = text.get_rect()
             blockoffx = (self.width / 2)
             blockoffy = (self.height / 2)
@@ -249,46 +268,51 @@ class VKey(object):
         screen.blit(templayer, (self.x,self.y))
         self.dirty = False
 
-class VirtualKeyboard(object):
+class VirtualKeyboard():
     ''' Implement a basic full screen virtual keyboard for touchscreens '''
-    def run(self, screen, text=''):
-        # First, make a backup of the screen        
+
+    def __init__(self, screen):
+
+        # First, make a copy of the screen        
         self.screen = screen
+        self.rect = screen.get_rect()
+
+        # create a background surface
 #        self.background = pygame.Surface((800,480))        
-        self.background = pygame.Surface((320,240))
-        
-        # Copy original screen to self.background
-        self.background.blit(screen,(0,0))
-        
-        # Shade the background surrounding the keys
-#        self.keylayer = pygame.Surface((800,480))
-        self.keylayer = pygame.Surface((320,240))
-        self.keylayer.fill((0,0,0))
-#        self.keylayer.set_alpha(100)
-        self.screen.blit(self.keylayer,(0,0))
-        
-        self.keys = []
-#        self.textbox = pygame.Surface((800,30))
-        self.textbox = pygame.Surface((320,30))
-        self.text = text
-        self.caps = False
-        
+        self.background = pygame.Surface(self.rect.size)
+        self.background.fill((0,0,0)) # fill with black
+        self.background.set_alpha(127) # 50% transparent
+        # blit background to screen
+        self.screen.blit(self.background,(0,0))
+
         pygame.font.init() # Just in case 
-        self.font = pygame.font.Font(None, 28) 
-#        self.font = pygame.font.SysFont('Courier', 22, bold=True)        
-        self.input = TextInput(self.background,self.screen,self.text,3,30)
-       
-        self.addkeys()
-        self.paintkeys()
+        self.font = pygame.font.Font(None, 28) # keyboard font
+
+        self.caps = False
+        self.keys = []
+        self.textbox = pygame.Surface((self.rect.width,50))
+        self.addkeys() # add all the keys
+        self.paintkeys() # paint all the keys
+
+        pygame.display.update()
+
+
+    def run(self, text=''):
+
+        self.text = text
+#        self.input = TextInput(self.background,self.screen,self.text,3,30)
+        # create an input text box
+        self.input = TextInput(self.background,self.screen,self.text,3,5,self.rect.width-30,52)
 
         counter = 0
-        # My main event loop (hog all processes since we're on top, but someone might want
-        # to rewrite this to be more event based.  Personally it works fine for my purposes ;-)
-        while 1:
-            time.sleep(.05)
+        # main event loop (hog all processes since we're on top, but someone might want
+        # to rewrite this to be more event based...
+        while True:
+            time.sleep(0.1) # 10/second is often enough
             events = pygame.event.get() 
             if events <> None:
                 for e in events:
+# touch screen does not have these events...
 #                    if (e.type == KEYDOWN):
 #                        if e.key == K_ESCAPE:
 #                            self.clear()
@@ -315,7 +339,7 @@ class VirtualKeyboard(object):
                             self.selectatmouse()
                         
             counter += 1
-            if counter > 10:                
+            if counter > 5:                
                 self.input.flashcursor()
                 counter = 0
 ##            gtk.main_iteration(block=False)
@@ -332,8 +356,8 @@ class VirtualKeyboard(object):
         ''' Check to see if the user is pressing down on a key and draw it selected '''
         self.unselectall()
         for key in self.keys:
-            myrect = Rect(key.x,key.y,key.width,key.height)
-            if myrect.collidepoint(pygame.mouse.get_pos()):
+            keyrect = Rect(key.x,key.y,key.width,key.height)
+            if keyrect.collidepoint(pygame.mouse.get_pos()):
                 key.dirty = True
                 if key.bskey:
                     # Backspace
@@ -357,12 +381,11 @@ class VirtualKeyboard(object):
                     return True
                 if key.enter:
                     return True
-                    
-                mykey = key.caption
                 if self.caps:
-#                    mykey = mykey.upper()
-                    mykey = mykey.translate(Uppercase)
-                self.input.addcharatcursor(mykey)
+                    keycap = key.caption.translate(Uppercase)
+                else:
+                    keycap = key.caption
+                self.input.addcharatcursor(keycap)
                 self.paintkeys()
                 return False
             
@@ -379,17 +402,17 @@ class VirtualKeyboard(object):
             key.dirty = True        
         
     def selectatmouse(self):
-        ''' User has clicked a key, let's use it '''
+        # User has touched the screen - is it inside the textbox, or inside a key rect?
         self.unselectall()
         pos = pygame.mouse.get_pos()
 #        print 'touch {}'.format(pos)
         if self.input.rect.collidepoint(pos):
-#            print 'input {} x={}'.format(pos, self.input.x)
-            self.input.setcursor(pos[0]-self.input.x)
+#            print 'input {}'.format(pos)
+            self.input.setcursor(pos)
         else:
           for key in self.keys:
-              myrect = Rect(key.x,key.y,key.width,key.height)
-              if myrect.collidepoint(pos):
+              keyrect = Rect(key.x,key.y,key.width,key.height)
+              if keyrect.collidepoint(pos):
                   key.selected = True
                   key.dirty = True
                   self.paintkeys()
@@ -445,7 +468,8 @@ class VirtualKeyboard(object):
         y += keyHeight + 5
 
         xfont = pygame.font.SysFont('Courier', 22, bold=True) # I like this X better
-        onekey = VKey('X',294,30,25) # exit key
+#        onekey = VKey('X',294,30,25) # exit key
+        onekey = VKey('X',294,5,25) # exit key
         onekey.font = xfont
         onekey.special = True
         onekey.escape = True
@@ -480,12 +504,11 @@ class VirtualKeyboard(object):
         ''' Draw the keyboard (but only if they're dirty.) '''
         for key in self.keys:
             key.draw(self.screen, self.background, self.caps)
-        
-        pygame.display.flip()
+        pygame.display.update()
     
     def clear(self):    
         ''' Put the screen back to before we started '''
         self.screen.blit(self.background,(0,0))
-        pygame.display.flip()
+        pygame.display.update()
         
         
