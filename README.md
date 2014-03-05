@@ -6,7 +6,9 @@ Virtual Keyboard for Adafruit PiTFT
  (C) Copyright 2007 Anthony Maro<br>
  (C) Copyright 2014 William B Phelps
 
-   Version 2.0 - February 2014 - for PiTFT 320x240 touchscreen
+   Version 2.1 - February 2014 - for PiTFT 320x240 touchscreen
+
+   Now has 2 line input area (code specific for 2 lines, not generalized)
 
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -28,6 +30,6 @@ Virtual Keyboard for Adafruit PiTFT
    from virtualKeyboard import VirtualKeyboard
 
    default_text = 'Hello world'
-   mykeybd = VirtualKeyboard()
-   userinput = mykeybd.run(screen, default_text)
+   vkeybd = VirtualKeyboard(screen)         <<< Changed in version 2.1 !
+   userinput = vkeybd.run(default_text)     <<< Changed in version 2.1 !
 
