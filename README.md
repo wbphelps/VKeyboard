@@ -1,11 +1,14 @@
 VKeyboard
 =========
 
-Virtual Keyboard for Adafruit PiTFT
+A Python Virtual Keyboard for Adafruit PiTFT and other touch screen devices
 
  (C) Copyright 2007 Anthony Maro<br>
  (C) Copyright 2014 William B Phelps
 
+   Version 2.2 - March 2014 - generalize somewhat, to support other screen sizes
+   Tested with 320x240 and 480x320
+   
    Version 2.1 - February 2014 - for PiTFT 320x240 touchscreen
 
    Now has 2 line input area (code specific for 2 lines, not generalized)
