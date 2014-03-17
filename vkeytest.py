@@ -37,7 +37,7 @@ print "Framebuffer size: %d x %d" % (size[0], size[1])
 size = (480,320) # temp
 screen = pygame.display.set_mode(size)
 
-image = pygame.Surface.convert(pygame.image.load('ISS Close up 3bwr.jpg'))
+image = pygame.Surface.convert(pygame.image.load('ISS_Close_up_3bwr.jpg'))
 bg  = pygame.transform.scale(image, size)
 
 bgRect = bg.get_rect()

@@ -73,7 +73,7 @@ class VirtualKeyboard():
 
         self.x = (self.w-self.keyW*12)/2 # centered
         self.y = 5 # stay away from the edges (better touch)
-#        print 'keys {} {} {} {}'.format(self.w, self.keyW, self.keyH, self.x)
+#        print 'keys x {} w {} keyW {} keyH {}'.format(self.x, self.w, self.keyW, self.keyH)
 
         pygame.font.init() # Just in case 
         self.keyFont = pygame.font.Font(None, self.keyW) # keyboard font
@@ -253,8 +253,8 @@ class VirtualKeyboard():
             self.keys.append(onekey)
             x += self.keyW
 
-        x = self.x
-        y += self.keyH + 5
+        x = self.x + 1
+        y += self.keyH + self.keyH/4
 
 #        print 'addkeys keyW {} keyH {}'.format(self.keyW, self.keyH)
 
@@ -262,27 +262,27 @@ class VirtualKeyboard():
         onekey.special = True
         onekey.shiftkey = True
         self.keys.append(onekey)
-        x += onekey.w + 5
+        x += onekey.w + self.keyW/6
 
         onekey = VKey('Space',x,y,self.keyW*5,self.keyH,self.keyFont)
         onekey.special = True
         onekey.spacekey = True
         self.keys.append(onekey)
-        x += onekey.w + 5
+        x += onekey.w + self.keyW/6
 
         onekey = VKey('Enter',x,y,int(self.keyW*2.5),self.keyH,self.keyFont)
         onekey.special = True
         onekey.enter = True
         self.keys.append(onekey)
-        x += onekey.w + 10
+        x += onekey.w + self.keyW/3
 
         onekey = VKey('<-',x,y,int(self.keyW*1.2+0.5),self.keyH,self.keyFont)
         onekey.special = True
         onekey.bskey = True
         self.keys.append(onekey)
+        x += onekey.w + self.keyW/3
 
         xfont = pygame.font.SysFont('Courier', 22, bold=True) # I like this X better #TODO???
-#        onekey = VKey('X',294,30,25) # exit key
         onekey = VKey('X',self.x+self.textW-1,self.y,self.keyW,self.keyH,xfont) # exit key TODO???
         onekey.special = True
         onekey.escape = True
@@ -367,7 +367,7 @@ class TextInput():
             self.cursorvis = True
 
         self.screen.blit(self.background,self.rect)
-        self.screen.blit(self.layer,self.rect
+        self.screen.blit(self.layer,self.rect)
 
         if self.cursorvis:
             self.drawcursor()
